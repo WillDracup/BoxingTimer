@@ -28,7 +28,15 @@ $tenths = [int][math]::Round([double]::Parse($old, [Globalization.CultureInfo]::
 $new = "{0}.{1}" -f [int][math]::Floor($tenths / 10.0), ($tenths % 10)
 
 $html = $html -replace 'const APP_VERSION = "[\d.]+";', "const APP_VERSION = `"$new`";"
+# bump the icon cache-buster so iOS/Android fetch the new home-screen icon on re-add
+$html = $html -replace 'apple-touch-icon\.png\?v=[\d.]+', "apple-touch-icon.png?v=$new"
 Set-Content $htmlPath -Value $html -NoNewline
+
+# same cache-buster for the manifest icons
+$manPath = Join-Path $PSScriptRoot "manifest.webmanifest"
+$man = Get-Content $manPath -Raw
+$man = $man -replace '\.png\?v=[\d.]+', ".png?v=$new"
+Set-Content $manPath -Value $man -NoNewline
 
 $sw = Get-Content $swPath -Raw
 if (-not ([regex]::IsMatch($sw, 'const CACHE = "box-v[\d.]+";'))) { throw "Could not find the CACHE version line in sw.js" }
