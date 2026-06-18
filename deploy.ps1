@@ -26,6 +26,15 @@ $sw = $sw -replace 'const CACHE = "box-v\d+";', "const CACHE = `"box-v$new`";"
 Set-Content $swPath -Value $sw -NoNewline
 Write-Host "  Cache version: box-v$old -> box-v$new" -ForegroundColor Yellow
 
+# --- stamp the same number into the front-screen version label in index.html ---
+$htmlPath = Join-Path $PSScriptRoot "index.html"
+$html = Get-Content $htmlPath -Raw
+if ($html -match 'const APP_VERSION = "\d+";') {
+  $html = $html -replace 'const APP_VERSION = "\d+";', "const APP_VERSION = `"$new`";"
+  Set-Content $htmlPath -Value $html -NoNewline
+  Write-Host "  App version label: v$new" -ForegroundColor Yellow
+}
+
 # --- commit & push ---
 git add -A
 git commit -m "$msg`n`nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"

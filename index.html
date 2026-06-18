@@ -69,6 +69,7 @@
     font-weight:700;text-align:center;line-height:1;transition:color .55s ease;}
   .eyebrow .big{font-size:clamp(2.3rem,9.5vw,3.1rem);letter-spacing:.04em;display:block;
     margin-top:6px;line-height:1;font-weight:800;}
+  .eyebrow .ver{font-size:.66em;opacity:.5;letter-spacing:.12em;margin-left:.45em;font-weight:600;}
   .note{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);
     width:max-content;max-width:84vw;text-align:center;font-size:.76rem;line-height:1.4;
     opacity:0;transition:opacity .4s ease;pointer-events:none;}
@@ -268,6 +269,10 @@
 </div>
 
 <script>
+/* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
+   service-worker cache number, so the front screen always reveals which build loaded. */
+const APP_VERSION = "7";
+
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
@@ -534,7 +539,7 @@ function segLabel(seg){
 function renderIdle(){
   paintIdle();
   timeEl.classList.remove("msg");
-  eyebrow.innerHTML="Boxing Timer";
+  eyebrow.innerHTML='Boxing Timer <span class="ver">v'+APP_VERSION+'</span>';
   const {total}=buildSegments();
   timeEl.textContent=fmt(total);
   const mins=Math.round(total/60);
