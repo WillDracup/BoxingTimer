@@ -1,0 +1,63 @@
+==========================================
+  BOXING TIMER - the simple guide
+==========================================
+
+The app is already online here:
+
+    https://willdracup.github.io/BoxingTimer/
+
+That's the same setup as your meditation app (GitHub Pages), so it works
+exactly the same way.
+
+
+-------------------------------------------------
+PUT IT ON YOUR PHONE  (do this once)
+-------------------------------------------------
+1. Open this link on your phone:
+       https://willdracup.github.io/BoxingTimer/
+
+2. Add it to your home screen so it opens like a real app:
+   - iPhone (Safari): tap the Share button (square with an up-arrow),
+     scroll down, tap "Add to Home Screen", then "Add".
+   - Android (Chrome): tap the three dots (top-right),
+     tap "Install app" (or "Add to Home Screen").
+
+3. Now you have a red boxing-glove icon. Tap it any time - it even
+   works with no signal.
+
+
+-------------------------------------------------
+USING IT
+-------------------------------------------------
+- Tap START. A bell rings first so you can set the volume.
+- "Adjust" lets you change the rounds and times. Your settings are
+  saved on the phone automatically.
+
+
+-------------------------------------------------
+IF YOU WANT TO CHANGE THE APP LATER
+-------------------------------------------------
+You don't need the command line. Two double-click files do everything:
+
+  * "Deploy (double-click).cmd"
+        Puts the latest version online. After it finishes, your phone
+        picks up the new version next time you open the app.
+
+  * "Preview on this PC (double-click).cmd"
+        Try the app on this computer before putting it online.
+        It shows two web addresses - open the "Desktop" one in a browser.
+        Your phone can use the "Phone" address too, if it's on the same WiFi.
+        Close the window when you're done.
+
+(If Windows ever shows a blue "Windows protected your PC" box the first
+ time, click "More info" then "Run anyway" - that's just because the file
+ is new.)
+
+
+-------------------------------------------------
+THE FILES IN THIS FOLDER (you can ignore most)
+-------------------------------------------------
+  index.html ............. the app itself
+  Deploy (double-click).cmd ........ put changes online
+  Preview on this PC (double-click).cmd .. try it locally
+  the rest ............... behind-the-scenes bits the app needs

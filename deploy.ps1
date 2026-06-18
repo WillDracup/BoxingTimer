@@ -33,3 +33,4 @@ git push origin main
 
 Write-Host ""
 Write-Host "  Pushed. GitHub Pages rebuilds in ~1 min." -ForegroundColor Green
+Write-Host "  Live: https://willdracup.github.io/BoxingTimer/" -ForegroundColor Cyan
