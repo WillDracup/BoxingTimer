@@ -116,18 +116,18 @@
     background:var(--panel);color:var(--fog);
     transform:translateY(100%);transition:transform .35s cubic-bezier(.22,.61,.36,1);
     overflow-y:auto;display:flex;flex-direction:column;
-    padding:calc(14px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom));
+    padding:calc(10px + env(safe-area-inset-top)) 22px calc(12px + env(safe-area-inset-bottom));
     max-width:560px;margin:0 auto;}
   .sheet.open{transform:translateY(0);}
-  .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 18px;}
+  .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:2px auto clamp(8px,1.6vh,18px);}
   .sheet h2{font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif;font-weight:700;color:#fff;
-    font-size:1.3rem;letter-spacing:-.01em;margin-bottom:22px;}
-  .group{margin-bottom:24px;}
+    font-size:clamp(1.15rem,3.2vh,1.3rem);letter-spacing:-.01em;margin-bottom:clamp(10px,2.2vh,22px);}
+  .group{margin-bottom:clamp(8px,1.6vh,24px);}
   .group > .glabel{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
-    color:var(--fog-dim);margin-bottom:6px;}
+    color:var(--fog-dim);margin-bottom:clamp(3px,0.8vh,6px);}
 
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:16px 0;border-bottom:1px solid var(--line);}
+    padding:clamp(6px,1.2vh,16px) 0;border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:none;}
   .row .name{font-size:1rem;color:#eef0f5;}
   .row .hint{font-size:.74rem;color:var(--fog-dim);margin-top:2px;}
@@ -150,7 +150,7 @@
 
   .done-btn{width:100%;appearance:none;border:none;cursor:pointer;margin-top:auto;
     background:linear-gradient(180deg,var(--red-hi),var(--red));color:#fff;font-weight:700;
-    letter-spacing:.1em;text-transform:uppercase;padding:16px;border-radius:14px;font-size:.92rem;}
+    letter-spacing:.1em;text-transform:uppercase;padding:clamp(12px,1.8vh,16px);border-radius:14px;font-size:.92rem;}
 
   @media (prefers-reduced-motion: reduce){
     .time.msg{animation:none;}
