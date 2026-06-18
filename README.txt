@@ -51,6 +51,10 @@ After the first push, future updates are just:  .\deploy.ps1 "what changed"
 - Android (Chrome): menu (3 dots) -> "Install app".
 
 ## Credits
+- App icon: adapted from "Boxing sign icon" by Vecteezy (https://www.vecteezy.com),
+  recoloured to the app palette. Used under the Vecteezy Free License (attribution
+  required). The original artwork is not redistributed here — only the recoloured
+  PNG icons. make_icons.py regenerates them from the downloaded source.
 - Ring bells from Pixabay (royalty-free Pixabay Content License — free for commercial
   use, no attribution required):
     bell-start.mp3 .. "Boxing bell hit (double)"  — plays at the start of each round
