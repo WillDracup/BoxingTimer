@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.1">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.2">
 
 <style>
   :root{
@@ -109,16 +109,12 @@
 
   .hidden{display:none !important;}
   .transport{display:flex;align-items:center;gap:26px;}
+  /* all transport buttons identical: same size, outlined circle (no fill), white icon */
   .tbtn{appearance:none;cursor:pointer;display:grid;place-items:center;border-radius:50%;
-    transition:transform .15s ease;}
-  .tbtn:active{transform:scale(.94);}
-  .tbtn svg{display:block;}
-  .tbtn.main{width:88px;height:88px;border:none;
-    background:rgba(255,255,255,.92);box-shadow:0 8px 30px rgba(0,0,0,.25);}
-  .tbtn.main svg{fill:#15171c;}
-  .tbtn.stop{width:64px;height:64px;background:transparent;border:2px solid currentColor;opacity:.85;}
-  .tbtn.stop svg{fill:currentColor;}
-  .tbtn.stop:active{opacity:1;}
+    color:inherit;width:80px;height:80px;background:transparent;border:2px solid currentColor;opacity:.92;
+    transition:transform .15s ease, opacity .2s;}
+  .tbtn:active{transform:scale(.94);opacity:1;}
+  .tbtn svg{display:block;fill:currentColor;}
 
   /* settings sheet */
   .scrim{position:fixed;inset:0;z-index:5;background:rgba(6,7,10,.6);backdrop-filter:blur(3px);
@@ -311,7 +307,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -548,8 +544,8 @@ const CIRC = 2*Math.PI*92;
 progEl.setAttribute("stroke-dasharray", CIRC.toFixed(2));
 
 const ICON_PLAY  = '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>';
-const ICON_PAUSE = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>';
-const ICON_STOP  = '<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.4"/></svg>';
+const ICON_PAUSE = '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>';
+const ICON_STOP  = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.4"/></svg>';
 stopBtn.innerHTML = ICON_STOP;
 
 /* phase palette: each maps to a full-screen background + readable text colour */
