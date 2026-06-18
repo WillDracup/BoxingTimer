@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.6">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.0">
 
 <style>
   :root{
@@ -173,7 +173,7 @@
     .eyebrow .plabel{font-size:clamp(1.3rem,5.4vh,2rem);}
     .dial{order:1;width:min(72vh,430px);height:auto;aspect-ratio:1;}
     .count{order:2;min-height:1.5rem;font-size:clamp(1rem,3.2vh,1.4rem);}
-    .time{font-size:clamp(2.2rem,15vh,5rem);}
+    .time{font-size:clamp(2.8rem,21vh,6.6rem);}
     .controls{min-height:0;}
     /* icon buttons in the bottom corners, at the same depth */
     #toggleBtn,#primary{position:fixed;z-index:4;
@@ -299,7 +299,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "2.6";
+const APP_VERSION = "1.0";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
