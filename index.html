@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.4">
 
 <style>
   :root{
@@ -54,9 +54,11 @@
   #vignette{position:fixed;inset:0;z-index:0;pointer-events:none;
     background:radial-gradient(125% 95% at 50% 32%, transparent 52%, rgba(0,0,0,.14));}
 
-  /* slim overall-workout progress along the very top */
-  #overall{position:fixed;top:0;left:0;height:4px;width:0%;z-index:3;
+  /* slim overall-workout progress bars, mirrored on the top and bottom of the screen */
+  .topbar,.botbar{position:fixed;left:0;height:5px;width:0%;z-index:3;
     background:var(--fg);opacity:.55;transition:width .25s linear, background-color .55s ease;}
+  .topbar{top:0;}
+  .botbar{bottom:0;}
 
   .wrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:clamp(12px,3vh,30px);
@@ -74,8 +76,9 @@
   /* round count on its own line — flex order puts it above (portrait) / below (landscape) the circle */
   .count{text-align:center;font-size:clamp(1.3rem,5vw,1.75rem);letter-spacing:.1em;
     font-weight:700;opacity:.85;line-height:1;min-height:1.4rem;}
-  .note{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);
-    width:max-content;max-width:84vw;text-align:center;font-size:.76rem;line-height:1.4;
+  /* bell note: anchored just below the circle (child of .dial), so it never moves it */
+  .note{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);
+    width:max-content;max-width:min(80vw,340px);text-align:center;font-size:.76rem;line-height:1.4;
     opacity:0;transition:opacity .4s ease;pointer-events:none;}
   .note.show{opacity:.85;pointer-events:auto;}
 
@@ -90,6 +93,9 @@
     font-weight:800;letter-spacing:-.02em;font-size:clamp(4.4rem,27vw,10rem);line-height:1;}
   .time.msg{font-size:clamp(2.2rem,10vw,3rem);letter-spacing:.01em;font-weight:700;
     animation:msgIn 1s ease both;}
+  /* idle total: minutes over seconds, so a long total still fits inside the circle */
+  .time.stack{font-size:clamp(3rem,20vw,6rem);line-height:.98;}
+  .time.stack span{display:block;}
   @keyframes msgIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
   .sub{position:relative;z-index:2;margin-top:.5em;font-size:.85rem;letter-spacing:.18em;
     text-transform:uppercase;text-align:center;opacity:.75;min-height:1.1em;}
@@ -169,10 +175,7 @@
     .dial{order:1;width:min(74vh,440px);height:auto;aspect-ratio:1;}
     .count{order:2;min-height:0;font-size:clamp(1rem,3.2vh,1.4rem);}
     .time{font-size:clamp(2.2rem,15vh,5rem);}
-    /* bell note (prep only) sits just below the circle, narrow so it clears the corners */
-    .note{position:absolute;top:auto;left:50%;transform:translateX(-50%);
-      width:max-content;max-width:min(56vw,360px);text-align:center;
-      bottom:calc(env(safe-area-inset-bottom) + 16px);}
+    .time.stack{font-size:clamp(1.8rem,11vh,3.6rem);}
     .controls{min-height:0;}
     /* icon buttons in the bottom corners, at the same depth */
     #toggleBtn,#primary{position:fixed;z-index:4;
@@ -188,12 +191,12 @@
 </head>
 <body>
 <div id="vignette"></div>
-<div id="overall"></div>
+<div class="topbar" id="overall"></div>
+<div class="botbar" id="overallBottom"></div>
 
 <div class="wrap">
   <div class="head">
     <div class="eyebrow" id="eyebrow">Boxing Timer</div>
-    <div class="note" id="note"></div>
   </div>
 
   <div class="count" id="count"></div>
@@ -208,6 +211,7 @@
       <div class="time" id="time">0:00</div>
       <div class="sub" id="sub"></div>
     </div>
+    <div class="note" id="note"></div>
   </div>
 
   <div class="controls">
@@ -297,7 +301,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -526,8 +530,9 @@ function sayDone(){
 /* ---------- elements ---------- */
 const $ = s=>document.querySelector(s);
 const eyebrow=$("#eyebrow"), timeEl=$("#time"), subEl=$("#sub"), progEl=$("#prog");
-const dialEl=$("#dial"), overallEl=$("#overall"), noteEl=$("#note");
+const dialEl=$("#dial"), overallEl=$("#overall"), overallBottomEl=$("#overallBottom"), noteEl=$("#note");
 const countEl=$("#count");
+function setOverall(pct){ overallEl.style.width=pct; overallBottomEl.style.width=pct; }
 const primary=$("#primary"), adjustBtn=$("#adjust");
 const transport=$("#transport"), toggleBtn=$("#toggleBtn"), stopBtn=$("#stopBtn"), idlebar=$("#idlebar");
 const sheet=$("#sheet"), scrim=$("#scrim");
@@ -537,7 +542,7 @@ progEl.setAttribute("stroke-dasharray", CIRC.toFixed(2));
 const ICON_PLAY  = '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>';
 const ICON_PAUSE = '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>';
 const ICON_STOP  = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.4"/></svg>';
-const ICON_PENCIL= '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.5h4l9.4-9.4-4-4L4 16.5v4zM19.7 6.3a1 1 0 0 0 0-1.4l-2.6-2.6a1 1 0 0 0-1.4 0l-1.9 1.9 4 4 1.9-1.9z"/></svg>';
+const ICON_PENCIL= '<svg width="29" height="29" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 0 0 0-.03z"/></svg>';
 stopBtn.innerHTML = ICON_STOP;
 toggleBtn.innerHTML = ICON_PAUSE;
 primary.innerHTML = ICON_PLAY;     // Start / Start again = play icon
@@ -618,11 +623,14 @@ function renderIdle(){
   timeEl.classList.remove("msg");
   eyebrow.innerHTML='Boxing Timer <span class="ver">v'+APP_VERSION+'</span>';
   const {total}=buildSegments();
-  timeEl.textContent=fmt(total);
+  // total shown as minutes over seconds, so a long total still fits inside the circle
+  const tm=Math.floor(total/60), ts=String(total%60).padStart(2,"0");
+  timeEl.classList.add("stack");
+  timeEl.innerHTML=`<span>${tm}</span><span>${ts}</span>`;
   const mins=Math.round(total/60);
   subEl.textContent=`${cfg.warmups} warm-up · ${cfg.spars} spar · ~${mins} min`;
   progEl.style.strokeDashoffset=CIRC;
-  overallEl.style.width="0%";
+  setOverall("0%");
   countEl.textContent="";
   setMode("idle");
 }
@@ -650,7 +658,7 @@ function tick(){
   progEl.style.strokeDashoffset = (CIRC*(1-frac)).toFixed(2);
   timeEl.textContent = fmt(remain/1000);
   const elapsed = seg.start*1000 + (seg.dur*1000 - Math.max(0,remain));
-  overallEl.style.width = (totalDur>0 ? Math.min(100, elapsed/(totalDur*1000)*100) : 0)+"%";
+  setOverall((totalDur>0 ? Math.min(100, elapsed/(totalDur*1000)*100) : 0)+"%");
 
   // "Seconds out, round N" — 3s before any sparring round begins
   const next=segs[segIdx+1];
@@ -673,7 +681,7 @@ function begin(){
   segs=built.segs; totalDur=built.total; segIdx=0;
   if(!segs.length){ return; }
   ensureAudio(); startKeepAlive(); requestWake();
-  timeEl.classList.remove("msg");
+  timeEl.classList.remove("msg","stack");
   primeVoice();
   if(cfg.ping){
     ping();
@@ -701,10 +709,10 @@ function finish(){
   state="done"; cancelAnimationFrame(raf);
   paintIdle();                              // green finish, matching the idle bookend
   progEl.style.strokeDashoffset=0;
-  overallEl.style.width="100%";
+  setOverall("100%");
   eyebrow.innerHTML="";
   countEl.textContent="";
-  timeEl.classList.add("msg"); timeEl.textContent="Done!";
+  timeEl.classList.remove("stack"); timeEl.classList.add("msg"); timeEl.textContent="Done!";
   subEl.textContent="good work";
   primary.setAttribute("aria-label","Start again");
   setMode("done");
