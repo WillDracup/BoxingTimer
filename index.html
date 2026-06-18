@@ -64,11 +64,15 @@
 
   /* fixed height so the circle never shifts between phases */
   .head{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:5rem;}
+    min-height:5.6rem;}
   .eyebrow{font-size:1.05rem;letter-spacing:.28em;text-transform:uppercase;
     font-weight:700;text-align:center;line-height:1;transition:color .55s ease;}
-  .eyebrow .big{font-size:clamp(2.3rem,9.5vw,3.1rem);letter-spacing:.04em;display:block;
-    margin-top:6px;line-height:1;font-weight:800;}
+  /* big phase word (GET READY / WARM-UP / REST / ROUND) */
+  .eyebrow .plabel{font-size:clamp(2.2rem,10vw,3.2rem);letter-spacing:.05em;display:block;
+    line-height:1;font-weight:800;}
+  /* smaller round count under it */
+  .eyebrow .pcount{font-size:clamp(1.3rem,5vw,1.75rem);letter-spacing:.1em;display:block;
+    margin-top:7px;line-height:1;font-weight:700;opacity:.85;}
   .eyebrow .ver{font-size:.66em;opacity:.5;letter-spacing:.12em;margin-left:.45em;font-weight:600;}
   .note{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);
     width:max-content;max-width:84vw;text-align:center;font-size:.76rem;line-height:1.4;
@@ -280,7 +284,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -526,22 +530,15 @@ function showNote(msg, ms=5200){
 function hideNote(){ clearTimeout(noteTimer); noteEl.classList.remove("show"); }
 noteEl.addEventListener("click",hideNote);
 
-// `top` becomes the label above the circle: a small phase name + a BIG round
-// indicator (kept on its own line so the head height — and the circle — never moves).
-function big(s){ return `<span class="big">${s}</span>`; }
+// `top` is the label above the circle: a BIG phase word, with a smaller round
+// count under it for rounds. Kept on fixed lines so the circle never moves.
+function plabel(s){ return `<span class="plabel">${s}</span>`; }
+function pcount(s){ return s ? `<span class="pcount">${s}</span>` : ""; }
 function segLabel(seg){
-  if(seg.type==="prep")   return {top:`Get ready ${big("&nbsp;")}`, sub:"gloves on"};
-  if(seg.type==="warmup") return {top:`Warm-up ${big(seg.n+" / "+seg.total)}`, sub:""};
-  if(seg.type==="spar")   return {top:`Round ${big(seg.n+" / "+seg.total)}`, sub:""};
-  if(seg.type==="rest"){
-    const next=segs[segIdx+1];
-    let nextTxt="&nbsp;";
-    if(next){
-      if(next.type==="spar")        nextTxt=`Round ${next.n}`;
-      else if(next.type==="warmup") nextTxt=`Warm-up ${next.n}`;
-    }
-    return {top:`Rest — next ${big(nextTxt)}`, sub:""};
-  }
+  if(seg.type==="prep")   return {top:plabel("Get ready"), sub:"gloves on"};
+  if(seg.type==="warmup") return {top:plabel("Warm-up")+pcount(seg.n+" / "+seg.total), sub:""};
+  if(seg.type==="spar")   return {top:plabel("Round")+pcount(seg.n+" / "+seg.total), sub:""};
+  if(seg.type==="rest")   return {top:plabel("Rest"), sub:""};
   return {top:"", sub:""};
 }
 
