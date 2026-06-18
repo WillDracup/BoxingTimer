@@ -3,7 +3,7 @@
    next open — no waiting for iOS to notice a service-worker update. The cache is kept
    up to date on each fetch and used as a fallback, so the app still runs fully offline.
    In dev (localhost / LAN IP) it's pure network passthrough. */
-const CACHE = "box-v12";
+const CACHE = "box-v13";
 const host = self.location.hostname;
 const DEV = host === "localhost" || host === "127.0.0.1" ||
   /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || host.endsWith(".local");

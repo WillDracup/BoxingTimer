@@ -3,7 +3,7 @@ Run:  py make_icons.py     (needs Pillow)
 Not required to run the app — only to regenerate the PNG icons."""
 from PIL import Image, ImageDraw
 
-INK   = (21, 23, 28)      # background
+INK   = (78, 163, 41)     # background — beech-leaf green #4ea329, matching the app
 RED   = (31, 104, 216)    # glove body — #1f68d8, same as the sparring blue
 RED_D = (20, 72, 162)     # shadow / outline
 RED_H = (122, 160, 240)   # highlight
