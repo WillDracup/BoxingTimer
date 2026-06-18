@@ -50,6 +50,11 @@ After the first push, future updates are just:  .\deploy.ps1 "what changed"
 - iPhone (Safari): Share -> "Add to Home Screen" -> Add.
 - Android (Chrome): menu (3 dots) -> "Install app".
 
+## Credits
+- Ring bell: "Boxing Bell 1" by lazychillzone, from Pixabay (royalty-free Pixabay
+  Content License — free for commercial use, no attribution required). Stored as
+  bell.mp3. If it ever fails to load, the app falls back to a synthesised bell.
+
 ## Notes
 - The announcer uses the phone's built-in text-to-speech, so the exact voice depends on the
   device. iOS plays a male English voice where one is installed. If you'd prefer a real
