@@ -25,8 +25,9 @@
     --red:#e23b3b;          /* boxing accent */
     --red-hi:#ff5757;
     /* phase backgrounds — bold, high-contrast, distinct at a distance */
-    --green:#239237;        /* rest / get ready — warm, slightly yellow grass green */
+    --green:#4ea329;        /* rest / get ready — fresh beech-leaf green (early-May yellow-green) */
     --green-fg:#ffffff;
+    --grn-panel:#2a7c1d;    /* deeper green for the Adjust sheet surface */
     --violet:#6a40d4;       /* warm-up */
     --violet-fg:#ffffff;
     --blue:#1f68d8;         /* sparring round */
@@ -125,50 +126,50 @@
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
   .scrim.open{opacity:1;pointer-events:auto;}
   .sheet{position:fixed;left:0;right:0;top:0;bottom:0;z-index:6;
-    background:var(--panel);color:var(--fog);
+    background:var(--grn-panel);color:#fff;
     transform:translateY(100%);transition:transform .35s cubic-bezier(.22,.61,.36,1);
     overflow-y:auto;display:flex;flex-direction:column;
     padding:calc(10px + env(safe-area-inset-top)) 22px calc(12px + env(safe-area-inset-bottom));
     max-width:560px;margin:0 auto;}
   .sheet.open{transform:translateY(0);}
-  .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:2px auto clamp(8px,1.6vh,18px);}
+  .grab{width:42px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);margin:2px auto clamp(8px,1.6vh,18px);}
   .sheet h2{font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif;font-weight:700;color:#fff;
     font-size:clamp(1.15rem,3.2vh,1.3rem);letter-spacing:-.01em;margin-bottom:clamp(10px,2.2vh,22px);}
   .group{margin-bottom:clamp(8px,1.6vh,24px);}
   .group > .glabel{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
-    color:var(--fog-dim);margin-bottom:clamp(3px,0.8vh,6px);}
+    color:rgba(255,255,255,.72);margin-bottom:clamp(3px,0.8vh,6px);}
 
   .row{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:clamp(6px,1.2vh,16px) 0;border-bottom:1px solid var(--line);}
+    padding:clamp(6px,1.2vh,16px) 0;border-bottom:1px solid rgba(255,255,255,.2);}
   .row:last-child{border-bottom:none;}
-  .row .name{font-size:1rem;color:#eef0f5;}
-  .row .hint{font-size:.74rem;color:var(--fog-dim);margin-top:2px;}
+  .row .name{font-size:1rem;color:#fff;}
+  .row .hint{font-size:.74rem;color:rgba(255,255,255,.74);margin-top:2px;}
   .stepper{display:flex;align-items:center;gap:8px;flex:none;}
-  .step-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
-    background:var(--panel-2);color:var(--red-hi);font-size:1.25rem;line-height:1;cursor:pointer;
+  .step-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.45);
+    background:rgba(255,255,255,.14);color:#fff;font-size:1.25rem;line-height:1;cursor:pointer;
     display:grid;place-items:center;user-select:none;}
-  .step-btn:active{background:#2e333f;}
+  .step-btn:active{background:rgba(255,255,255,.28);}
   .val{min-width:62px;text-align:center;font-variant-numeric:tabular-nums;
     font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif;font-weight:600;font-size:1.2rem;color:#fff;}
   .val.small{min-width:34px;}
 
   .toggle{appearance:none;cursor:pointer;flex:none;width:52px;height:30px;border-radius:999px;
-    border:1px solid var(--line);background:var(--panel-2);position:relative;
+    border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.16);position:relative;
     transition:background .2s,border-color .2s;}
   .toggle::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
-    background:var(--fog-dim);transition:transform .2s,background .2s;}
-  .toggle.on{background:#3a1414;border-color:var(--red);}
-  .toggle.on::after{transform:translateX(22px);background:var(--red-hi);}
+    background:rgba(255,255,255,.8);transition:transform .2s,background .2s;}
+  .toggle.on{background:#fff;border-color:#fff;}
+  .toggle.on::after{transform:translateX(22px);background:var(--grn-panel);}
 
   /* TEMPORARY test-mode control — dashed so it reads as a dev/throwaway button */
   .test-btn{width:100%;appearance:none;cursor:pointer;margin-top:auto;
-    background:transparent;border:1px dashed var(--fog-dim);color:var(--fog);
+    background:transparent;border:1px dashed rgba(255,255,255,.5);color:rgba(255,255,255,.9);
     font-size:.82rem;letter-spacing:.06em;padding:12px;border-radius:12px;margin-bottom:10px;}
-  .test-btn:active{border-color:var(--red-hi);color:#fff;}
-  .test-btn.on{border-style:solid;border-color:var(--red);color:#fff;background:#3a1414;}
+  .test-btn:active{border-color:#fff;color:#fff;}
+  .test-btn.on{border-style:solid;border-color:#fff;color:#fff;background:rgba(255,255,255,.18);}
 
   .done-btn{width:100%;appearance:none;border:none;cursor:pointer;
-    background:linear-gradient(180deg,var(--red-hi),var(--red));color:#fff;font-weight:700;
+    background:#fff;color:#143a26;font-weight:800;
     letter-spacing:.1em;text-transform:uppercase;padding:clamp(12px,1.8vh,16px);border-radius:14px;font-size:.92rem;}
 
   @media (prefers-reduced-motion: reduce){
@@ -219,7 +220,7 @@
   <div class="group">
     <div class="glabel">Rounds</div>
     <div class="row">
-      <div><div class="name">Warm-up rounds</div><div class="hint">Blue rounds to start</div></div>
+      <div><div class="name">Warm-up rounds</div><div class="hint">Violet rounds to start</div></div>
       <div class="stepper">
         <button class="step-btn" data-cnt="warmups" data-d="-1">–</button>
         <div class="val small" id="v-warmups">3</div>
@@ -227,7 +228,7 @@
       </div>
     </div>
     <div class="row">
-      <div><div class="name">Sparring rounds</div><div class="hint">Orange rounds, announced</div></div>
+      <div><div class="name">Sparring rounds</div><div class="hint">Blue rounds, announced</div></div>
       <div class="stepper">
         <button class="step-btn" data-cnt="spars" data-d="-1">–</button>
         <div class="val small" id="v-spars">6</div>
@@ -285,7 +286,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "11";
+const APP_VERSION = "12";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
