@@ -171,20 +171,22 @@
     background:#fff;color:#143a26;font-weight:800;
     letter-spacing:.1em;text-transform:uppercase;padding:clamp(12px,1.8vh,16px);border-radius:14px;font-size:.92rem;}
 
-  /* phone turned sideways: short, wide viewport. Squash the dial into a wide
-     ellipse near the top so the big time + controls all fit without scrolling. */
+  /* phone turned sideways: keep the circle (portrait-ish size) centred, and float
+     the controls into the corners so the short height isn't eaten by a button row. */
   @media (orientation: landscape) and (max-height: 600px){
-    .wrap{justify-content:flex-start;gap:clamp(6px,2vh,16px);
-      padding:clamp(8px,4vh,26px) 24px 14px;}
+    .wrap{justify-content:center;gap:clamp(6px,2vh,16px);padding:clamp(6px,2vh,14px) 16px;}
     .head{min-height:0;}
-    .eyebrow .plabel{font-size:clamp(1.5rem,7vh,2.4rem);}
-    .eyebrow .pcount{font-size:clamp(1rem,3.4vh,1.5rem);margin-top:3px;}
-    .dial{width:auto;height:min(46vh,220px);aspect-ratio:2.7/1;}
-    .dial .track,.dial .prog{vector-effect:non-scaling-stroke;}
-    .dial .track{stroke-width:3;}
-    .dial .prog{stroke-width:5;}
-    .time{font-size:clamp(2.4rem,16vh,5rem);}
+    .eyebrow .plabel{font-size:clamp(1.4rem,6.5vh,2.3rem);}
+    .eyebrow .pcount{font-size:clamp(.95rem,3vh,1.45rem);margin-top:3px;}
+    .dial{width:min(78vh,460px);height:auto;aspect-ratio:1;}
+    .time{font-size:clamp(2.6rem,15vh,5.6rem);}
     .controls{min-height:0;}
+    /* in-session: stop bottom-left, pause/play top-right */
+    #stopBtn{position:fixed;z-index:4;bottom:calc(env(safe-area-inset-bottom) + 14px);left:calc(env(safe-area-inset-left) + 18px);}
+    #toggleBtn{position:fixed;z-index:4;top:calc(env(safe-area-inset-top) + 14px);right:calc(env(safe-area-inset-right) + 18px);}
+    /* idle: Start centred at the bottom, Adjust bottom-right */
+    .primary{position:fixed;z-index:4;bottom:calc(env(safe-area-inset-bottom) + 16px);left:0;right:0;margin:0 auto;width:max-content;}
+    .secondary{position:fixed;z-index:4;bottom:calc(env(safe-area-inset-bottom) + 18px);right:calc(env(safe-area-inset-right) + 18px);}
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -203,7 +205,7 @@
   </div>
 
   <div class="dial" id="dial">
-    <svg viewBox="0 0 200 200" preserveAspectRatio="none">
+    <svg viewBox="0 0 200 200">
       <circle class="track" cx="100" cy="100" r="92"></circle>
       <circle class="prog" id="prog" cx="100" cy="100" r="92" transform="rotate(-90 100 100)"
               stroke-dasharray="578.05" stroke-dashoffset="578.05"></circle>
@@ -301,7 +303,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -511,6 +513,21 @@ function primeVoice(){              // iOS often swallows the first utterance â€
   if(!cfg.voice || !("speechSynthesis" in window)) return;
   try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){}
 }
+// Workout sign-off, with "done" emphasised: a tiny pause before it, then said
+// slower and a touch higher so it lands as the punchline.
+function sayDone(){
+  if(!cfg.voice || !("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const a=new SpeechSynthesisUtterance("And we're"),
+          b=new SpeechSynthesisUtterance("done!");
+    [a,b].forEach(u=>{ if(chosenVoice) u.voice=chosenVoice; u.volume=1; });
+    a.rate=1.0;  a.pitch=1.4;
+    b.rate=0.65; b.pitch=1.55;        // slower + higher = emphasis on "done"
+    speechSynthesis.speak(a);
+    speechSynthesis.speak(b);
+  }catch(e){}
+}
 
 /* ---------- elements ---------- */
 const $ = s=>document.querySelector(s);
@@ -693,8 +710,8 @@ function finish(){
   subEl.textContent="good work";
   primary.textContent="Start again";
   setMode("done");
-  // let the three closing bells ring out first, then the upbeat sign-off (slower)
-  setTimeout(()=>{ if(state==="done") speak("And we're done!", 0.9); }, 3000);
+  // let the closing bell ring out first, then the upbeat sign-off (emphasis on "done")
+  setTimeout(()=>{ if(state==="done") sayDone(); }, 3000);
   clearTimeout(graceTimer);
   graceTimer=setTimeout(windDown, 30000);
 }
