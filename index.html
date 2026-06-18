@@ -271,7 +271,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "7";
+const APP_VERSION = "8";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -727,24 +727,35 @@ refreshSettingsUI();
 renderIdle();
 
 /* ---------- service worker (offline / installable) ---------- */
+// Locally (localhost / LAN / *.local) we DON'T register a worker — and we tear down
+// any that's already there — so the dev preview is never served a stale cached copy.
+// On the live site the worker stays, for offline use and home-screen install.
+const DEV_HOST = location.hostname==="localhost" || location.hostname==="127.0.0.1" ||
+  /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname) ||
+  location.hostname.endsWith(".local") || location.hostname==="";
 if("serviceWorker" in navigator){
-  let hadController = !!navigator.serviceWorker.controller, reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{
-    if(hadController && !reloaded && (state==="idle"||state==="done")){
-      reloaded = true; location.reload();
-    }
-    hadController = true;
-  });
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
-      const check = ()=>{ reg.update().catch(()=>{}); };
-      check();
-      setInterval(check, 30000);
-      document.addEventListener("visibilitychange",()=>{
-        if(document.visibilityState==="visible") check();
-      });
-    }).catch(()=>{});
-  });
+  if(DEV_HOST){
+    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+    if("caches" in window) caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});
+  } else {
+    let hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(hadController && !reloaded && (state==="idle"||state==="done")){
+        reloaded = true; location.reload();
+      }
+      hadController = true;
+    });
+    window.addEventListener("load",()=>{
+      navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+        const check = ()=>{ reg.update().catch(()=>{}); };
+        check();
+        setInterval(check, 30000);
+        document.addEventListener("visibilitychange",()=>{
+          if(document.visibilityState==="visible") check();
+        });
+      }).catch(()=>{});
+    });
+  }
 }
 </script>
 </body>
