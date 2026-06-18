@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.5">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.6">
 
 <style>
   :root{
@@ -167,10 +167,12 @@
      fills the space that's left. */
   @media (orientation: landscape) and (max-height: 600px){
     .wrap{justify-content:center;gap:clamp(3px,1vh,10px);padding:clamp(4px,1.5vh,10px) 16px;}
-    .head{min-height:0;order:0;}
+    /* reserve fixed heights for the word above and the count below, so the circle
+       sits in the same place on every screen (start / rest / round / finish) */
+    .head{min-height:2.4rem;order:0;}
     .eyebrow .plabel{font-size:clamp(1.3rem,5.4vh,2rem);}
-    .dial{order:1;width:min(74vh,440px);height:auto;aspect-ratio:1;}
-    .count{order:2;min-height:0;font-size:clamp(1rem,3.2vh,1.4rem);}
+    .dial{order:1;width:min(72vh,430px);height:auto;aspect-ratio:1;}
+    .count{order:2;min-height:1.5rem;font-size:clamp(1rem,3.2vh,1.4rem);}
     .time{font-size:clamp(2.2rem,15vh,5rem);}
     .controls{min-height:0;}
     /* icon buttons in the bottom corners, at the same depth */
@@ -297,7 +299,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -376,16 +378,16 @@ function stopKeepAlive(){ try{ keepAlive && keepAlive.stop(); }catch(e){} keepAl
    (trimming a little leading silence). Prefetched up front, decoded once the
    AudioContext exists. If a file is missing or won't decode, we fall back to the
    synthesised bell. */
-let bellStartArr=null, bellEndArr=null, bellStartBuf=null, bellEndBuf=null;
-function prefetchBell(url, set){
-  try{ fetch(url).then(r=> r.ok ? r.arrayBuffer() : null).then(b=>{ if(b){ set(b); decodeBells(); } }).catch(()=>{}); }catch(e){}
-}
-prefetchBell("bell-start.mp3", b=>bellStartArr=b);
-prefetchBell("bell-end.mp3",   b=>bellEndArr=b);
+let bellStartArr=null, bellEndArr=null, bellStartBuf=null, bellEndBuf=null, decStart=null, decEnd=null;
+// fetch the bytes immediately (no AudioContext needed yet)
+const fetchStart = fetch("bell-start.mp3").then(r=> r.ok ? r.arrayBuffer() : null).then(b=>{ bellStartArr=b; }).catch(()=>{});
+const fetchEnd   = fetch("bell-end.mp3").then(r=> r.ok ? r.arrayBuffer() : null).then(b=>{ bellEndArr=b; }).catch(()=>{});
+// decode into buffers once the context exists; decStart/decEnd resolve when ready
+// (so the very first bell waits for the recording instead of using the synth).
 function decodeBells(){
   if(!audio) return;
-  if(bellStartArr && !bellStartBuf){ try{ audio.decodeAudioData(bellStartArr.slice(0)).then(b=>{bellStartBuf=b;}).catch(()=>{}); }catch(e){} }
-  if(bellEndArr   && !bellEndBuf){   try{ audio.decodeAudioData(bellEndArr.slice(0)).then(b=>{bellEndBuf=b;}).catch(()=>{}); }catch(e){} }
+  if(!decStart) decStart = fetchStart.then(()=> bellStartArr ? audio.decodeAudioData(bellStartArr.slice(0)).then(b=>{bellStartBuf=b;}) : null).catch(()=>{});
+  if(!decEnd)   decEnd   = fetchEnd.then(()=>   bellEndArr   ? audio.decodeAudioData(bellEndArr.slice(0)).then(b=>{bellEndBuf=b;})     : null).catch(()=>{});
 }
 function playBuf(buf, t, gainMul, skip){
   const src=audio.createBufferSource(); src.buffer=buf;
@@ -456,23 +458,27 @@ function synthBell(t, gainMul=1){
   ns.connect(bp); bp.connect(ng); ng.connect(out);
   ns.start(t); ns.stop(t+0.05);
 }
-// Round signals — play the dedicated recording once; synth fallback if not loaded.
+// Round signals — wait for the recording to decode (so the FIRST one isn't the synth
+// fallback), then play it once. Synth is used only if the file truly isn't available.
 const SKIP_START=0.05, SKIP_END=0.07;     // trim the leading silence in each recording
-function fireSound(play){
-  ensureAudio();
-  if(audio.state==="suspended"){ audio.resume().then(play).catch(play); } else play();
+function playSignal(getDec, fn){
+  ensureAudio(); decodeBells();
+  (getDec() || Promise.resolve()).then(()=>{
+    const go=()=>fn(audio.currentTime+0.05);
+    if(audio.state==="suspended"){ audio.resume().then(go).catch(go); } else go();
+  });
 }
-function startBell(){ fireSound(()=>{ const t=audio.currentTime+0.05;
+function startBell(){ playSignal(()=>decStart, t=>{
   if(bellStartBuf) playBuf(bellStartBuf, t, 1.0, SKIP_START);
   else { synthBell(t); synthBell(t+0.27); }                       // fallback: double clang
 }); }
-function endBell(){ fireSound(()=>{ const t=audio.currentTime+0.05;
+function endBell(){ playSignal(()=>decEnd, t=>{
   if(bellEndBuf) playBuf(bellEndBuf, t, 1.0, SKIP_END);
   else { synthBell(t,.9); synthBell(t+0.21,.9); synthBell(t+0.42,.9); }  // fallback: triple
 }); }
-const ping = ()=> fireSound(()=>{ const t=audio.currentTime+0.05;
+const ping = ()=> playSignal(()=>decStart, t=>{
   if(bellStartBuf) playBuf(bellStartBuf, t, 1.0, SKIP_START);
-  else synthBell(t);                                              // fallback: single
+  else synthBell(t);                                              // fallback: single (start bell)
 });
 
 /* ---------- announcer voice (Web Speech, no files) ---------- */
