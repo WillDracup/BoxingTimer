@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.4">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2.5">
 
 <style>
   :root{
@@ -93,9 +93,6 @@
     font-weight:800;letter-spacing:-.02em;font-size:clamp(4.4rem,27vw,10rem);line-height:1;}
   .time.msg{font-size:clamp(2.2rem,10vw,3rem);letter-spacing:.01em;font-weight:700;
     animation:msgIn 1s ease both;}
-  /* idle total: minutes over seconds, so a long total still fits inside the circle */
-  .time.stack{font-size:clamp(3rem,20vw,6rem);line-height:.98;}
-  .time.stack span{display:block;}
   @keyframes msgIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
   .sub{position:relative;z-index:2;margin-top:.5em;font-size:.85rem;letter-spacing:.18em;
     text-transform:uppercase;text-align:center;opacity:.75;min-height:1.1em;}
@@ -175,7 +172,6 @@
     .dial{order:1;width:min(74vh,440px);height:auto;aspect-ratio:1;}
     .count{order:2;min-height:0;font-size:clamp(1rem,3.2vh,1.4rem);}
     .time{font-size:clamp(2.2rem,15vh,5rem);}
-    .time.stack{font-size:clamp(1.8rem,11vh,3.6rem);}
     .controls{min-height:0;}
     /* icon buttons in the bottom corners, at the same depth */
     #toggleBtn,#primary{position:fixed;z-index:4;
@@ -301,7 +297,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -623,12 +619,10 @@ function renderIdle(){
   timeEl.classList.remove("msg");
   eyebrow.innerHTML='Boxing Timer <span class="ver">v'+APP_VERSION+'</span>';
   const {total}=buildSegments();
-  // total shown as minutes over seconds, so a long total still fits inside the circle
-  const tm=Math.floor(total/60), ts=String(total%60).padStart(2,"0");
-  timeEl.classList.add("stack");
-  timeEl.innerHTML=`<span>${tm}</span><span>${ts}</span>`;
+  timeEl.textContent=fmt(total);
   const mins=Math.round(total/60);
-  subEl.textContent=`${cfg.warmups} warm-up · ${cfg.spars} spar · ~${mins} min`;
+  // summary on two lines so it sits comfortably inside the circle
+  subEl.innerHTML=`${cfg.warmups} warm-up · ${cfg.spars} spar<br>~${mins} min total`;
   progEl.style.strokeDashoffset=CIRC;
   setOverall("0%");
   countEl.textContent="";
