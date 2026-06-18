@@ -81,7 +81,7 @@
 
   /* dial: progress ring + big remaining time */
   .dial{position:relative;width:min(94vw,460px);aspect-ratio:1;display:grid;place-items:center;}
-  .dial svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+  .dial svg{position:absolute;inset:0;width:100%;height:100%;}
   .dial .track{fill:none;stroke:currentColor;opacity:.18;stroke-width:5;}
   .dial .prog{fill:none;stroke:currentColor;stroke-width:7;stroke-linecap:round;}
 
@@ -171,6 +171,22 @@
     background:#fff;color:#143a26;font-weight:800;
     letter-spacing:.1em;text-transform:uppercase;padding:clamp(12px,1.8vh,16px);border-radius:14px;font-size:.92rem;}
 
+  /* phone turned sideways: short, wide viewport. Squash the dial into a wide
+     ellipse near the top so the big time + controls all fit without scrolling. */
+  @media (orientation: landscape) and (max-height: 600px){
+    .wrap{justify-content:flex-start;gap:clamp(6px,2vh,16px);
+      padding:clamp(8px,4vh,26px) 24px 14px;}
+    .head{min-height:0;}
+    .eyebrow .plabel{font-size:clamp(1.5rem,7vh,2.4rem);}
+    .eyebrow .pcount{font-size:clamp(1rem,3.4vh,1.5rem);margin-top:3px;}
+    .dial{width:auto;height:min(46vh,220px);aspect-ratio:2.7/1;}
+    .dial .track,.dial .prog{vector-effect:non-scaling-stroke;}
+    .dial .track{stroke-width:3;}
+    .dial .prog{stroke-width:5;}
+    .time{font-size:clamp(2.4rem,16vh,5rem);}
+    .controls{min-height:0;}
+  }
+
   @media (prefers-reduced-motion: reduce){
     .time.msg{animation:none;}
   }
@@ -187,9 +203,9 @@
   </div>
 
   <div class="dial" id="dial">
-    <svg viewBox="0 0 200 200">
+    <svg viewBox="0 0 200 200" preserveAspectRatio="none">
       <circle class="track" cx="100" cy="100" r="92"></circle>
-      <circle class="prog" id="prog" cx="100" cy="100" r="92"
+      <circle class="prog" id="prog" cx="100" cy="100" r="92" transform="rotate(-90 100 100)"
               stroke-dasharray="578.05" stroke-dashoffset="578.05"></circle>
     </svg>
     <div style="text-align:center">
@@ -285,7 +301,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
