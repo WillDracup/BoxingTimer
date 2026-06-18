@@ -23,7 +23,7 @@ def draw_glove(size, pad_frac=0.0):
     ax0, ay0, A = p, p, S - 2 * p
 
     # design space + its bounding box (thumb at left, cuff at bottom)
-    DX0, DY0, DX1, DY1 = 4, 6, 92, 92
+    DX0, DY0, DX1, DY1 = 10, 6, 86, 90
     dw, dh = DX1 - DX0, DY1 - DY0
     scale = A / max(dw, dh)
     offx = ax0 + (A - dw * scale) / 2
@@ -34,22 +34,17 @@ def draw_glove(size, pad_frac=0.0):
     def ell(b, fill):      d.ellipse([T(b[0], b[1]), T(b[2], b[3])], fill=fill)
     def arc(b, a0, a1, fill, w): d.arc([T(b[0], b[1]), T(b[2], b[3])], a0, a1, fill=fill, width=max(1, int(Sc(w))))
 
-    # 1) wrist cuff (behind, darker), with a thin strap line
-    rrect((32, 72, 80, 92), 11, BLUE_D)
-    d.line([T(36, 81), T(76, 81)], fill=SEAM, width=max(1, int(Sc(2.4))))
-
-    # 2) thumb — a rounded lobe to the lower left, drawn before the pad so the
-    #    pad overlaps it and it reads as the thumb of the grip
-    ell((6, 42, 44, 80), BLUE)
-
-    # 3) main knuckle pad — big, bulbous, rounded
-    rrect((22, 6, 90, 74), 32, BLUE)
-
-    # 4) the one defining seam: the crease curving around the base of the thumb
-    arc((28, 28, 58, 80), 100, 258, SEAM, 3.2)
-
-    # 5) rim sheen along the upper-left edge (a crescent, not a blob)
-    arc((27, 11, 83, 63), 176, 252, BLUE_H, 7)
+    # Bold flat-icon boxing-glove silhouette (mitten shape), blue with a darker cuff.
+    # 1) wrist cuff
+    rrect((34, 64, 82, 90), 10, BLUE_D)
+    # 2) thumb — chunky rounded lobe to the lower left, joined at the bottom
+    ell((10, 42, 48, 76), BLUE)
+    # 3) fist / knuckle pad — big rounded block
+    rrect((30, 6, 86, 70), 24, BLUE)
+    # 4) carve a concave notch at the thumb/fingers junction (bite from the upper-left)
+    ell((16, 18, 44, 46), BG)
+    # 5) short curved knuckle seam near the top
+    arc((44, 12, 74, 42), 200, 322, BLUE_H, 4)
 
     return img.resize((size, size), Image.LANCZOS)
 
