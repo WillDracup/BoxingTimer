@@ -285,7 +285,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "13";
+const APP_VERSION = "1.0";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -357,53 +357,67 @@ function startKeepAlive(){
 }
 function stopKeepAlive(){ try{ keepAlive && keepAlive.stop(); }catch(e){} keepAlive=null; }
 
-// One boxing-ring CLANG at time t. Built from three layers:
-//   1) an FM core with an inharmonic modulator ratio -> the metallic "clang"
-//   2) bright inharmonic shimmer partials -> the ringing tail
-//   3) a short noise transient -> the hammer striking the bell
+// One boxing-ring CLANG at time t. Warmer/fuller (less tinny) build:
+//   - a low-pass tames the harsh top end
+//   - a bell tone set (hum/prime/fifth/octave) gives body and weight
+//   - a gentle FM core adds the metallic clang without the bright fizz
+//   - a soft low thud is the hammer hit
 function bell(t, gainMul=1){
-  const out=audio.createGain(); out.gain.value=0.55*gainMul; out.connect(master);
-  const f0=600, tail=1.5;
+  const out=audio.createGain(); out.gain.value=0.6*gainMul;
+  const lp=audio.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=4000; lp.Q.value=0.5;
+  out.connect(lp); lp.connect(master);
+  const f0=510, tail=1.7;
 
-  // 1) FM core ------------------------------------------------------------
+  // 1) bell body — hum an octave below, prime, fifth, octave (weight, not fizz)
+  [{f:f0*0.5, g:.34, d:1.7},
+   {f:f0,     g:.52, d:1.5},
+   {f:f0*1.5, g:.20, d:1.1},
+   {f:f0*2.0, g:.13, d:0.9}].forEach(p=>{
+    const o=audio.createOscillator(); o.type="sine"; o.frequency.value=p.f;
+    const g=audio.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(p.g,t+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+p.d);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t+p.d+0.05);
+  });
+
+  // 2) FM core — gentler index + lower modulator ratio = clang, not tinny
   const carrier=audio.createOscillator(); carrier.type="sine";
-  carrier.frequency.setValueAtTime(f0*1.03,t);              // tiny downward pitch glide,
-  carrier.frequency.exponentialRampToValueAtTime(f0,t+0.12);// like a real struck bell
-  const mod=audio.createOscillator(); mod.type="sine"; mod.frequency.value=f0*2.74; // inharmonic
+  carrier.frequency.setValueAtTime(f0*1.02,t);
+  carrier.frequency.exponentialRampToValueAtTime(f0,t+0.14);
+  const mod=audio.createOscillator(); mod.type="sine"; mod.frequency.value=f0*1.83;
   const modGain=audio.createGain();
-  modGain.gain.setValueAtTime(f0*7,t);                      // high index at the strike = clang
-  modGain.gain.exponentialRampToValueAtTime(f0*0.6,t+0.18);
+  modGain.gain.setValueAtTime(f0*3.2,t);
+  modGain.gain.exponentialRampToValueAtTime(f0*0.4,t+0.16);
   modGain.gain.exponentialRampToValueAtTime(0.001,t+tail);
   mod.connect(modGain); modGain.connect(carrier.frequency);
   const cg=audio.createGain();
   cg.gain.setValueAtTime(0.0001,t);
-  cg.gain.exponentialRampToValueAtTime(0.9,t+0.003);
+  cg.gain.exponentialRampToValueAtTime(0.6,t+0.004);
   cg.gain.exponentialRampToValueAtTime(0.0001,t+tail);
   carrier.connect(cg); cg.connect(out);
   carrier.start(t); carrier.stop(t+tail+0.05);
   mod.start(t);      mod.stop(t+tail+0.05);
 
-  // 2) inharmonic shimmer -------------------------------------------------
-  [{r:2.76,g:.16,d:1.0},{r:3.95,g:.13,d:0.8},{r:5.42,g:.10,d:0.6},
-   {r:7.41,g:.07,d:0.45},{r:9.9,g:.05,d:0.3}].forEach(p=>{
-    const osc=audio.createOscillator(); osc.type="sine"; osc.frequency.value=f0*p.r;
+  // 3) two quiet low metallic partials for a touch of shine (kept under 2 kHz)
+  [{r:2.76,g:.09,d:0.7},{r:3.95,g:.05,d:0.5}].forEach(p=>{
+    const o=audio.createOscillator(); o.type="sine"; o.frequency.value=f0*p.r;
     const g=audio.createGain();
     g.gain.setValueAtTime(0.0001,t);
-    g.gain.exponentialRampToValueAtTime(p.g,t+0.003);
+    g.gain.exponentialRampToValueAtTime(p.g,t+0.004);
     g.gain.exponentialRampToValueAtTime(0.0001,t+p.d);
-    osc.connect(g); g.connect(out);
-    osc.start(t); osc.stop(t+p.d+0.05);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t+p.d+0.05);
   });
 
-  // 3) hammer strike transient -------------------------------------------
-  const n=Math.floor(audio.sampleRate*0.05);
+  // 4) soft low hammer thud (not a bright tick)
+  const n=Math.floor(audio.sampleRate*0.045);
   const buf=audio.createBuffer(1,n,audio.sampleRate); const ch=buf.getChannelData(0);
   for(let i=0;i<n;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);
   const ns=audio.createBufferSource(); ns.buffer=buf;
-  const bp=audio.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=3400; bp.Q.value=0.7;
-  const ng=audio.createGain(); ng.gain.value=0.3*gainMul;
+  const bp=audio.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1500; bp.Q.value=0.6;
+  const ng=audio.createGain(); ng.gain.value=0.16*gainMul;
   ns.connect(bp); bp.connect(ng); ng.connect(out);
-  ns.start(t); ns.stop(t+0.06);
+  ns.start(t); ns.stop(t+0.05);
 }
 // Schedule `count` clangs `gap` seconds apart.
 function ringBell(count, gap, gainMul=1){
@@ -440,13 +454,13 @@ if("speechSynthesis" in window){
   pickVoice();
   speechSynthesis.onvoiceschanged=pickVoice;
 }
-function speak(text){
+function speak(text, rate=1.18){
   if(!cfg.voice || !("speechSynthesis" in window)) return;
   try{
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);
     if(chosenVoice) u.voice=chosenVoice;
-    u.rate=1.18; u.pitch=1.45; u.volume=1;   // bright and upbeat
+    u.rate=rate; u.pitch=1.45; u.volume=1;    // bright and upbeat
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -636,8 +650,8 @@ function finish(){
   subEl.textContent="good work";
   primary.textContent="Start again";
   setMode("done");
-  // let the three closing bells ring out first, then the upbeat sign-off
-  setTimeout(()=>{ if(state==="done") speak("And we're done!"); }, 3000);
+  // let the three closing bells ring out first, then the upbeat sign-off (slower)
+  setTimeout(()=>{ if(state==="done") speak("And we're done!", 0.9); }, 3000);
   clearTimeout(graceTimer);
   graceTimer=setTimeout(windDown, 30000);
 }

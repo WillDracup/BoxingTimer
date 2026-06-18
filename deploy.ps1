@@ -15,25 +15,26 @@ Set-Location $PSScriptRoot
 
 $msg = if ($args.Count -gt 0) { $args[0] } else { "Update app" }
 
-# --- bump CACHE = "box-vN" -> "box-v(N+1)" in sw.js ---
-$swPath = Join-Path $PSScriptRoot "sw.js"
-$sw = Get-Content $swPath -Raw
-$m = [regex]::Match($sw, 'const CACHE = "box-v(\d+)";')
-if (-not $m.Success) { throw "Could not find the CACHE version line in sw.js" }
-$old = [int]$m.Groups[1].Value
-$new = $old + 1
-$sw = $sw -replace 'const CACHE = "box-v\d+";', "const CACHE = `"box-v$new`";"
-Set-Content $swPath -Value $sw -NoNewline
-Write-Host "  Cache version: box-v$old -> box-v$new" -ForegroundColor Yellow
-
-# --- stamp the same number into the front-screen version label in index.html ---
+# --- bump the version by 0.1, in lockstep across index.html + sw.js ---
+# Read the current version from index.html (e.g. "1.0"), add 0.1 using integer tenths
+# (avoids float/locale issues), then stamp the new value into both files.
 $htmlPath = Join-Path $PSScriptRoot "index.html"
+$swPath   = Join-Path $PSScriptRoot "sw.js"
 $html = Get-Content $htmlPath -Raw
-if ($html -match 'const APP_VERSION = "\d+";') {
-  $html = $html -replace 'const APP_VERSION = "\d+";', "const APP_VERSION = `"$new`";"
-  Set-Content $htmlPath -Value $html -NoNewline
-  Write-Host "  App version label: v$new" -ForegroundColor Yellow
-}
+$vm = [regex]::Match($html, 'const APP_VERSION = "([\d.]+)";')
+if (-not $vm.Success) { throw "Could not find the APP_VERSION line in index.html" }
+$old = $vm.Groups[1].Value
+$tenths = [int][math]::Round([double]::Parse($old, [Globalization.CultureInfo]::InvariantCulture) * 10) + 1
+$new = "{0}.{1}" -f [int][math]::Floor($tenths / 10.0), ($tenths % 10)
+
+$html = $html -replace 'const APP_VERSION = "[\d.]+";', "const APP_VERSION = `"$new`";"
+Set-Content $htmlPath -Value $html -NoNewline
+
+$sw = Get-Content $swPath -Raw
+if (-not ([regex]::IsMatch($sw, 'const CACHE = "box-v[\d.]+";'))) { throw "Could not find the CACHE version line in sw.js" }
+$sw = $sw -replace 'const CACHE = "box-v[\d.]+";', "const CACHE = `"box-v$new`";"
+Set-Content $swPath -Value $sw -NoNewline
+Write-Host "  Version: v$old -> v$new  (cache box-v$new)" -ForegroundColor Yellow
 
 # --- commit & push ---
 git add -A
