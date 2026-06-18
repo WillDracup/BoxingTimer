@@ -285,7 +285,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.2";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -339,7 +339,7 @@ function ensureAudio(){
     comp.attack.value=0.003; comp.release.value=0.25;
     master.connect(comp); comp.connect(audio.destination);
     startKeepAlive();
-    decodeBell();                 // turn the prefetched bell.mp3 into a buffer
+    decodeBells();                // turn the prefetched bell recordings into buffers
   }
   if(audio.state==="suspended") audio.resume();
   return audio;
@@ -358,31 +358,31 @@ function startKeepAlive(){
 }
 function stopKeepAlive(){ try{ keepAlive && keepAlive.stop(); }catch(e){} keepAlive=null; }
 
-/* ---------- recorded ring bell (bell.mp3, Pixabay royalty-free) ----------
-   A single boxing-ring clang with a long ring. We prefetch the bytes up front,
-   decode once the AudioContext exists, then schedule hits — trimming the ~0.2s
-   of leading silence and capping the long tail so rapid hits stay tight.
-   If the file is missing or won't decode, we fall back to the synth bell. */
-let bellArr=null, bellBuf=null;
-try{ fetch("bell.mp3").then(r=> r.ok ? r.arrayBuffer() : null).then(b=>{ bellArr=b; decodeBell(); }).catch(()=>{}); }catch(e){}
-function decodeBell(){
-  if(bellBuf || !bellArr || !audio) return;
-  try{ audio.decodeAudioData(bellArr.slice(0)).then(buf=>{ bellBuf=buf; }).catch(()=>{}); }catch(e){}
+/* ---------- recorded ring bells (Pixabay royalty-free) ----------
+   Two recordings: a double-hit to OPEN a round (bell-start.mp3) and a dings phrase
+   to END it (bell-end.mp3). Each is a complete phrase, so we just play it once
+   (trimming a little leading silence). Prefetched up front, decoded once the
+   AudioContext exists. If a file is missing or won't decode, we fall back to the
+   synthesised bell. */
+let bellStartArr=null, bellEndArr=null, bellStartBuf=null, bellEndBuf=null;
+function prefetchBell(url, set){
+  try{ fetch(url).then(r=> r.ok ? r.arrayBuffer() : null).then(b=>{ if(b){ set(b); decodeBells(); } }).catch(()=>{}); }catch(e){}
 }
-const BELL_SKIP=0.20;             // skip the recording's leading silence
-function bellSample(t, gainMul=1){
-  const src=audio.createBufferSource(); src.buffer=bellBuf;
-  const g=audio.createGain(); g.gain.setValueAtTime(1.05*gainMul, t);
-  g.gain.setValueAtTime(1.05*gainMul, t+2.7);     // hold, then fade the long ring
-  g.gain.exponentialRampToValueAtTime(0.0001, t+3.1);
+prefetchBell("bell-start.mp3", b=>bellStartArr=b);
+prefetchBell("bell-end.mp3",   b=>bellEndArr=b);
+function decodeBells(){
+  if(!audio) return;
+  if(bellStartArr && !bellStartBuf){ try{ audio.decodeAudioData(bellStartArr.slice(0)).then(b=>{bellStartBuf=b;}).catch(()=>{}); }catch(e){} }
+  if(bellEndArr   && !bellEndBuf){   try{ audio.decodeAudioData(bellEndArr.slice(0)).then(b=>{bellEndBuf=b;}).catch(()=>{}); }catch(e){} }
+}
+function playBuf(buf, t, gainMul, skip){
+  const src=audio.createBufferSource(); src.buffer=buf;
+  const g=audio.createGain(); g.gain.value=gainMul;
   src.connect(g); g.connect(master);
-  src.start(t, BELL_SKIP);
-  src.stop(t+3.15);
+  src.start(t, skip||0);
 }
-// dispatch: recorded clang if loaded, otherwise the synth fallback
-function bell(t, gainMul=1){ if(bellBuf) bellSample(t,gainMul); else synthBell(t,gainMul); }
 
-// Fallback CLANG synthesised in-app (used until/unless bell.mp3 is available):
+// Fallback CLANG synthesised in-app (used until/unless the recordings are available):
 //   - a low-pass tames the harsh top end
 //   - a bell tone set (hum/prime/fifth/octave) gives body and weight
 //   - a gentle FM core adds the metallic clang without the bright fizz
@@ -444,22 +444,24 @@ function synthBell(t, gainMul=1){
   ns.connect(bp); bp.connect(ng); ng.connect(out);
   ns.start(t); ns.stop(t+0.05);
 }
-// Schedule `count` clangs `gap` seconds apart.
-function ringBell(count, gap, gainMul=1){
-  if(count<=0) return;
+// Round signals — play the dedicated recording once; synth fallback if not loaded.
+const SKIP_START=0.05, SKIP_END=0.07;     // trim the leading silence in each recording
+function fireSound(play){
   ensureAudio();
-  const go=()=>{
-    const t0=audio.currentTime+0.05;
-    for(let i=0;i<count;i++){
-      bell(t0+i*gap, gainMul);
-    }
-  };
-  if(audio.state==="suspended"){ audio.resume().then(go).catch(go); }
-  else go();
+  if(audio.state==="suspended"){ audio.resume().then(play).catch(play); } else play();
 }
-const ping       = ()=>ringBell(1, 0);        // volume check
-const startBell  = ()=>ringBell(2, 0.27);     // "ding-ding" — round starts
-const endBell    = ()=>ringBell(3, 0.21, .9); // three quick dings — round ends
+function startBell(){ fireSound(()=>{ const t=audio.currentTime+0.05;
+  if(bellStartBuf) playBuf(bellStartBuf, t, 1.0, SKIP_START);
+  else { synthBell(t); synthBell(t+0.27); }                       // fallback: double clang
+}); }
+function endBell(){ fireSound(()=>{ const t=audio.currentTime+0.05;
+  if(bellEndBuf) playBuf(bellEndBuf, t, 1.0, SKIP_END);
+  else { synthBell(t,.9); synthBell(t+0.21,.9); synthBell(t+0.42,.9); }  // fallback: triple
+}); }
+const ping = ()=> fireSound(()=>{ const t=audio.currentTime+0.05;
+  if(bellStartBuf) playBuf(bellStartBuf, t, 1.0, SKIP_START);
+  else synthBell(t);                                              // fallback: single
+});
 
 /* ---------- announcer voice (Web Speech, no files) ---------- */
 let chosenVoice=null;

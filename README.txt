@@ -51,9 +51,11 @@ After the first push, future updates are just:  .\deploy.ps1 "what changed"
 - Android (Chrome): menu (3 dots) -> "Install app".
 
 ## Credits
-- Ring bell: "Boxing Bell 1" by lazychillzone, from Pixabay (royalty-free Pixabay
-  Content License — free for commercial use, no attribution required). Stored as
-  bell.mp3. If it ever fails to load, the app falls back to a synthesised bell.
+- Ring bells from Pixabay (royalty-free Pixabay Content License — free for commercial
+  use, no attribution required):
+    bell-start.mp3 .. "Boxing bell hit (double)"  — plays at the start of each round
+    bell-end.mp3   .. "Boxing bell dings"         — plays at the end of each round
+  If either fails to load, the app falls back to a synthesised bell.
 
 ## Notes
 - The announcer uses the phone's built-in text-to-speech, so the exact voice depends on the
