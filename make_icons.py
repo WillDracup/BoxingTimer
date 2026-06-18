@@ -4,10 +4,10 @@ Not required to run the app — only to regenerate the PNG icons."""
 from PIL import Image, ImageDraw
 
 INK   = (21, 23, 28)      # background
-RED   = (226, 59, 59)
-RED_D = (168, 33, 33)     # shadow / outline
-RED_H = (255, 120, 120)   # highlight
-SEAM  = (150, 24, 24)
+RED   = (31, 104, 216)    # glove body — #1f68d8, same as the sparring blue
+RED_D = (20, 72, 162)     # shadow / outline
+RED_H = (122, 160, 240)   # highlight
+SEAM  = (16, 58, 138)
 
 def rrect(d, box, r, fill):
     d.rounded_rectangle(box, radius=r, fill=fill)
@@ -57,8 +57,9 @@ def save(size, name, **kw):
     draw_glove(size, **kw).save(name)
     print("wrote", name)
 
-save(192, "icon-192.png")
-save(512, "icon-512.png")
-save(512, "icon-maskable-512.png", pad_frac=0.12)
-save(180, "apple-touch-icon.png")
+# a little smaller than before: more padding around the glove on every icon
+save(192, "icon-192.png", pad_frac=0.13)
+save(512, "icon-512.png", pad_frac=0.13)
+save(512, "icon-maskable-512.png", pad_frac=0.24)
+save(180, "apple-touch-icon.png", pad_frac=0.13)
 print("done")

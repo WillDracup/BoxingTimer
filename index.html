@@ -25,7 +25,7 @@
     --red:#e23b3b;          /* boxing accent */
     --red-hi:#ff5757;
     /* phase backgrounds — bold, high-contrast, distinct at a distance */
-    --green:#0e7d45;        /* rest / get ready */
+    --green:#239237;        /* rest / get ready — warm, slightly yellow grass green */
     --green-fg:#ffffff;
     --violet:#6a40d4;       /* warm-up */
     --violet-fg:#ffffff;
@@ -165,6 +165,7 @@
     background:transparent;border:1px dashed var(--fog-dim);color:var(--fog);
     font-size:.82rem;letter-spacing:.06em;padding:12px;border-radius:12px;margin-bottom:10px;}
   .test-btn:active{border-color:var(--red-hi);color:#fff;}
+  .test-btn.on{border-style:solid;border-color:var(--red);color:#fff;background:#3a1414;}
 
   .done-btn{width:100%;appearance:none;border:none;cursor:pointer;
     background:linear-gradient(180deg,var(--red-hi),var(--red));color:#fff;font-weight:700;
@@ -284,7 +285,7 @@
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -728,16 +729,25 @@ $("#voiceToggle").addEventListener("click",()=>{
   if(cfg.voice){ ensureAudio(); primeVoice(); speak("Seconds out, round one"); }
 });
 
-// TEMPORARY test mode: 1 warm-up, 1 spar, everything 15s. Applied for this session only
-// (not saved) so a reload restores your real settings. Remove with its markup when done.
+// TEMPORARY test mode: a toggle. First tap → 1 warm-up, 1 spar, everything 15s.
+// Tap again (while in test mode) → restore your saved settings. Session-only, not saved.
+// Remove this block + its markup + .test-btn CSS when done testing.
+const TEST_CFG = {warmups:1, spars:1, prep:15, round:15, rest:15};
+function inTestMode(){ return ["warmups","spars","prep","round","rest"].every(k=>cfg[k]===TEST_CFG[k]); }
+function updateTestBtn(){
+  const el=$("#testMode"); if(!el) return;
+  el.classList.toggle("on", inTestMode());
+  el.textContent = inTestMode() ? "⚡ Test mode ON — tap to restore" : "⚡ Test mode — 1 round each, 15s";
+}
 $("#testMode").addEventListener("click",()=>{
-  cfg.warmups=1; cfg.spars=1; cfg.prep=15; cfg.round=15; cfg.rest=15;
-  refreshSettingsUI(); if(state==="idle") renderIdle();
-  closeSheet();
+  if(inTestMode()) cfg = loadCfg();          // back to your saved settings
+  else Object.assign(cfg, TEST_CFG);
+  refreshSettingsUI(); if(state==="idle") renderIdle(); updateTestBtn();
 });
 
 /* ---------- init ---------- */
 refreshSettingsUI();
+updateTestBtn();
 renderIdle();
 
 /* ---------- service worker (offline / installable) ---------- */
