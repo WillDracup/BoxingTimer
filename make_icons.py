@@ -4,10 +4,9 @@ Not required to run the app — only to regenerate the PNG icons."""
 from PIL import Image, ImageDraw
 
 BG    = (78, 163, 41)     # background — beech-leaf green #4ea329, matching the app
-BLUE  = (31, 104, 216)    # glove body — #1f68d8, the sparring blue
-BLUE_D= (18, 70, 158)     # cuff / shadow
-BLUE_H= (120, 160, 242)   # highlight
-SEAM  = (15, 54, 130)     # stitching seams
+GLOVE = (255, 255, 255)   # white glove body (matches the app's white buttons/text)
+CUFF  = (205, 212, 223)   # light-grey wrist cuff
+LINE  = (122, 135, 156)   # grey stitch / seam lines
 
 def draw_glove(size, pad_frac=0.0):
     """Render at 4x then downscale for smooth edges. The glove is laid out in a
@@ -34,17 +33,18 @@ def draw_glove(size, pad_frac=0.0):
     def ell(b, fill):      d.ellipse([T(b[0], b[1]), T(b[2], b[3])], fill=fill)
     def arc(b, a0, a1, fill, w): d.arc([T(b[0], b[1]), T(b[2], b[3])], a0, a1, fill=fill, width=max(1, int(Sc(w))))
 
-    # Bold flat-icon boxing-glove silhouette (mitten shape), blue with a darker cuff.
+    # White flat-icon boxing-glove silhouette (mitten shape), light-grey cuff.
     # 1) wrist cuff
-    rrect((34, 64, 82, 90), 10, BLUE_D)
+    rrect((34, 64, 82, 90), 10, CUFF)
     # 2) thumb — chunky rounded lobe to the lower left, joined at the bottom
-    ell((10, 42, 48, 76), BLUE)
+    ell((10, 42, 48, 76), GLOVE)
     # 3) fist / knuckle pad — big rounded block
-    rrect((30, 6, 86, 70), 24, BLUE)
+    rrect((30, 6, 86, 70), 24, GLOVE)
     # 4) carve a concave notch at the thumb/fingers junction (bite from the upper-left)
     ell((16, 18, 44, 46), BG)
-    # 5) short curved knuckle seam near the top
-    arc((44, 12, 74, 42), 200, 322, BLUE_H, 4)
+    # 5) stitch lines: knuckle seam near the top + the cuff band
+    arc((44, 12, 74, 42), 200, 322, LINE, 3.4)
+    d.line([T(40, 70), T(76, 70)], fill=LINE, width=max(1, int(Sc(2.6))))
 
     return img.resize((size, size), Image.LANCZOS)
 
