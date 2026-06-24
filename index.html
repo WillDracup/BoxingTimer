@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rounds">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.0">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.1">
 
 <style>
   :root{
@@ -161,6 +161,32 @@
     background:#fff;color:#143a26;font-weight:800;
     letter-spacing:.1em;text-transform:uppercase;padding:clamp(12px,1.8vh,16px);border-radius:14px;font-size:.92rem;}
 
+  /* install helper: easiest path to the home screen, per device */
+  .info-scrim{position:fixed;inset:0;z-index:8;background:rgba(6,7,10,.62);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;display:grid;place-items:center;padding:16px;}
+  .info-scrim.open{opacity:1;pointer-events:auto;}
+  .info-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    max-width:380px;width:100%;max-height:94vh;overflow-y:auto;padding:clamp(20px,3vh,28px) 22px;
+    transform:translateY(14px) scale(.98);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  .info-scrim.open .info-card{transform:none;}
+  .info-card h2{font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif;font-weight:800;
+    color:var(--fg);font-size:1.2rem;letter-spacing:-.01em;margin-bottom:12px;}
+  .info-card .it{color:var(--fog);font-size:.9rem;line-height:1.5;}
+  .isteps{margin:10px 0 0;padding-left:1.25em;color:var(--fog);font-size:.88rem;line-height:1.5;}
+  .isteps li{margin-bottom:7px;}
+  .isteps b{color:var(--fg);}
+  .ihint{margin-top:11px;color:var(--fog-dim);font-size:.78rem;line-height:1.45;}
+  .shareicon{display:inline-block;width:1.45em;height:1.45em;vertical-align:-.34em;fill:var(--fg);}
+  .install-actions{display:flex;flex-direction:column;gap:9px;margin-top:clamp(14px,2.6vh,20px);}
+  .install-primary{width:100%;appearance:none;border:none;cursor:pointer;
+    background:#fff;color:#143a26;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:13px;border-radius:14px;font-size:.9rem;}
+  .install-ghost{appearance:none;cursor:pointer;background:transparent;border:1px solid var(--line);
+    color:var(--fog);font-size:.85rem;letter-spacing:.04em;padding:11px;border-radius:12px;}
+  .install-ghost:active{border-color:#fff;color:#fff;}
+  .install-never{display:flex;align-items:center;gap:9px;margin-top:14px;color:var(--fog-dim);font-size:.82rem;cursor:pointer;}
+  .install-never input{width:18px;height:18px;accent-color:var(--green);flex:none;}
+
   /* phone turned sideways: the phase word sits above the circle, the round count
      drops BELOW it (in flow, so it can't overlap), and every control is an icon
      button in a bottom corner — left = Adjust/Stop, right = Start/Play. The circle
@@ -293,13 +319,30 @@
   <!-- TEMPORARY test-mode button (quick fast run). Remove this block + its handler when done testing. -->
   <button class="test-btn" id="testMode">⚡ Test mode — 1 round each, 15s</button>
 
+  <!-- TEMP testing button: resets the install prompt's "don't show again" and shows it. Remove when done. -->
+  <button class="test-btn" id="resetInstall">↺ Show the install prompt again (testing)</button>
+
   <button class="done-btn" id="done">Done</button>
+</div>
+
+<!-- Install helper -->
+<div class="info-scrim" id="installScrim">
+  <div class="info-card" id="installCard">
+    <h2 id="installTitle"></h2>
+    <div id="installBody"></div>
+    <label class="install-never"><input type="checkbox" id="installNever"> Don’t show this again</label>
+    <div class="install-actions">
+      <button class="install-primary" id="installAction" hidden></button>
+      <button class="install-ghost" id="installCopy" hidden></button>
+      <button class="install-ghost" id="installDismiss"></button>
+    </div>
+  </div>
 </div>
 
 <script>
 /* Build version shown on the idle screen. deploy.ps1 keeps this in step with the
    service-worker cache number, so the front screen always reveals which build loaded. */
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 
 /* ---------- safe storage (degrades gracefully where storage is blocked) ---------- */
 const store = {
@@ -756,6 +799,7 @@ function closeSheet(){ sheet.classList.remove("open"); scrim.classList.remove("o
 adjustBtn.addEventListener("click",()=>{ ensureAudio(); openSheet(); });
 scrim.addEventListener("click",closeSheet);
 $("#done").addEventListener("click",closeSheet);
+$("#resetInstall").addEventListener("click",()=>{ closeSheet(); if(window.BoxInstall){ BoxInstall.reset(); BoxInstall.show(); } });
 
 function refreshSettingsUI(){
   $("#v-prep").textContent=fmt(cfg.prep);
@@ -829,6 +873,71 @@ $("#testMode").addEventListener("click",()=>{
 refreshSettingsUI();
 updateTestBtn();
 renderIdle();
+
+/* ---------- install helper: shows the easiest path to the home screen per device ---------- */
+(function(){
+  const scrim=$("#installScrim"),
+        titleEl=$("#installTitle"), bodyEl=$("#installBody"),
+        actionBtn=$("#installAction"), copyBtn=$("#installCopy"), dismissBtn=$("#installDismiss"),
+        neverEl=$("#installNever");
+  if(!scrim) return;
+  const ua=navigator.userAgent||"";
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+  const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+  const isAndroid=/android/i.test(ua);
+  // in-app browsers (WhatsApp/IG/FB/etc.) can't add to the home screen at all
+  const inApp=/FBAN|FBAV|FB_IAB|Instagram|Line\/|Twitter|WhatsApp|Snapchat|Pinterest|LinkedInApp|GSA\/|MicroMessenger|TikTok/i.test(ua);
+  // on iOS only Safari can install; Chrome/Firefox/Edge for iOS cannot
+  const iosOther = isIOS && /CriOS|FxiOS|EdgiOS/i.test(ua);
+  const SHARE="<svg class='shareicon' viewBox='0 0 24 24' aria-hidden='true'><path d='M12 2.6l3.6 3.6-1.42 1.42L13 6.43V14.5h-2V6.43L9.82 7.62 8.4 6.2 12 2.6z'/><path d='M5.5 9.5H9v2H7.5v7.5h9V11.5H15v-2h3.5a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-9.5a1 1 0 0 1 1-1z'/></svg>";
+  const DOTS="<svg class='shareicon' viewBox='0 0 24 24' aria-hidden='true'><circle cx='5' cy='12' r='2'/><circle cx='12' cy='12' r='2'/><circle cx='19' cy='12' r='2'/></svg>";
+  let deferredPrompt=null, shown=false;
+  // shows on every browser launch until the user ticks "Don't show this again"
+  const never=()=>{ try{return localStorage.getItem("boxInstNever")==="1";}catch(e){return false;} };
+  const setNever=()=>{ try{localStorage.setItem("boxInstNever","1");}catch(e){} };
+  const open=()=>{ scrim.classList.add("open"); shown=true; };
+  const close=()=>{ scrim.classList.remove("open"); };
+  const dismiss=()=>{ if(neverEl && neverEl.checked) setNever(); close(); };
+  function render(v){
+    actionBtn.hidden=true; copyBtn.hidden=true;
+    if(v==="android"){
+      titleEl.textContent="Install Boxing Timer";
+      bodyEl.innerHTML="<div class='it'>Add it to your home screen for one-tap, full-screen, offline use.</div>";
+      actionBtn.hidden=false; actionBtn.textContent="Add to Home Screen"; dismissBtn.textContent="Not now";
+    } else if(v==="ios"){
+      titleEl.textContent="Add Boxing Timer to your home screen";
+      bodyEl.innerHTML="<div class='it'>For the full app, working offline, with its own icon:</div>"+
+        "<ol class='isteps'><li>If you see a Share icon "+SHARE+", tap it — if not, tap "+DOTS+" to reach it</li>"+
+        "<li>Scroll down to <b>Add to Home Screen</b></li>"+
+        "<li>Tap <b>Add</b></li></ol>"+
+        "<div class='ihint'>The "+DOTS+" and Share icon "+SHARE+" are in Safari’s bottom bar.</div>";
+      dismissBtn.textContent="Got it";
+    } else if(v==="android-manual"){
+      titleEl.textContent="Add Boxing Timer to your home screen";
+      bodyEl.innerHTML="<div class='it'>In Chrome:</div><ol class='isteps'><li>Tap the menu <b>⋮</b> (top-right)</li><li>Tap <b>Install app</b> (or <b>Add to Home screen</b>)</li></ol>";
+      dismissBtn.textContent="Got it";
+    } else {
+      const br=isIOS?"Safari":"Chrome";
+      titleEl.textContent="Open in "+br+" to install";
+      bodyEl.innerHTML="<div class='it'>You’re viewing this inside another app, which can’t add it to your home screen. Open it in "+br+" first:</div>"+
+        "<ol class='isteps'><li>Tap the menu (⋯ or Share)</li><li>Choose <b>Open in "+br+"</b></li><li>Then add it to your home screen</li></ol>"+
+        "<div class='it'>… or copy the link and paste it into "+br+".</div>";
+      copyBtn.hidden=false; copyBtn.textContent="Copy link"; dismissBtn.textContent="OK";
+    }
+  }
+  const decide=()=> (inApp||iosOther) ? "redirect" : isIOS ? "ios" : isAndroid ? (deferredPrompt?"android":"android-manual") : (deferredPrompt?"android":null);
+  function autoShow(){ if(standalone||shown||never()) return; const v=decide(); if(v){ render(v); open(); } }
+  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt=e; });
+  window.addEventListener("appinstalled", ()=>{ deferredPrompt=null; close(); });
+  actionBtn.addEventListener("click", ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.finally(()=>{ deferredPrompt=null; dismiss(); }); });
+  copyBtn.addEventListener("click", ()=>{ navigator.clipboard.writeText(location.href).then(()=>{ copyBtn.textContent="Copied!"; setTimeout(()=>copyBtn.textContent="Copy link",1600); }).catch(()=>{ copyBtn.textContent="Copy failed"; }); });
+  dismissBtn.addEventListener("click", dismiss);
+  scrim.addEventListener("click", e=>{ if(e.target===scrim) dismiss(); });
+  if(!standalone) window.addEventListener("load", ()=> setTimeout(autoShow, 1400));
+  // small API so the testing button can re-show the prompt / clear the "don't show again" flag
+  window.BoxInstall={ show(){ const v=decide()||"ios"; render(v); open(); },
+                      reset(){ try{ localStorage.removeItem("boxInstNever"); }catch(e){} } };
+})();
 
 /* ---------- service worker (offline / installable) ---------- */
 // Locally (localhost / LAN / *.local) we DON'T register a worker — and we tear down
